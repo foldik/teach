@@ -19,8 +19,9 @@ defmodule TeachWeb.Router do
     get "/", PageController, :index
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", TeachWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", TeachWeb do
+    pipe_through :api
+
+    get "/user-details", UserController, :get_user_details
+  end
 end

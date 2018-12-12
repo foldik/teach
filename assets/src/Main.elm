@@ -1,41 +1,93 @@
 import Browser
-import Html exposing (Html, button, div, text)
+import Html exposing (..)
 import Html.Events exposing (onClick)
+import Http
+import Json.Decode exposing (Decoder, map2, field, string, list)
 
 
 main =
-  Browser.sandbox { init = init, update = update, view = view }
+  Browser.element 
+    { init = init
+    , update = update
+    , subscriptions = subscriptions
+    , view = view 
+    }
 
 
 -- MODEL
 
-type alias Model = Int
+type alias UserDetails = 
+  { username : String
+  , roles : List String
+  }
 
-init : Model
-init =
-  0
+type Model 
+  = Loading
+  | Failure
+  | Loaded UserDetails
+  
+
+init : () -> (Model, Cmd Msg)
+init _ =
+  (Loading, getUserDetails)
 
 
 -- UPDATE
 
-type Msg = Increment | Decrement
+type Msg = GotUserDetails (Result Http.Error UserDetails)
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Increment ->
-      model + 1
+    GotUserDetails result ->
+      case result of
+        Ok userDetails ->
+          (Loaded userDetails, Cmd.none)
+        
+        Err _ ->
+          (Failure, Cmd.none)
 
-    Decrement ->
-      model - 4
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
 
 
 -- VIEW
 
 view : Model -> Html Msg
 view model =
-  div []
-    [ button [ onClick Decrement ] [ text "-" ]
-    , div [] [ text (String.fromInt model) ]
-    , button [ onClick Increment ] [ text "+" ]
-    ]
+  case model of
+      Loading ->
+        div [] [ text "Loading" ]
+  
+      Failure ->
+        div [] [ text "Application couldn't start. :(" ]
+
+      Loaded userDetails ->
+        div []
+          [ menuView userDetails ]
+
+
+menuView : UserDetails -> Html Msg
+menuView userDetails = 
+  nav [ ]
+    [p [] [ text userDetails.username ]]
+
+-- HTTP
+
+getUserDetails : Cmd Msg
+getUserDetails = 
+  Http.get
+      { url = "/api/user-details"
+      , expect = Http.expectJson GotUserDetails userDetailsDecoder 
+      }
+
+userDetailsDecoder : Decoder UserDetails
+userDetailsDecoder =
+  map2 UserDetails
+    (field "username" string)
+    (field "roles" (list string))
