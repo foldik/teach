@@ -1,6 +1,7 @@
 import Browser
 import Html exposing (..)
 import Html.Events exposing (onClick)
+import Html.Attributes exposing (..)
 import Http
 import Json.Decode exposing (Decoder, map2, field, string, list)
 
@@ -74,8 +75,27 @@ view model =
 
 menuView : UserDetails -> Html Msg
 menuView userDetails = 
-  nav [ ]
-    [p [] [ text userDetails.username ]]
+  nav [ classList [("navbar", True), ("is-primary", True)] ]
+    [ div [ class "navbar-brand" ] 
+        [ a [ classList [("navbar-burger", True), ("burger", True)]] 
+            [ span [] [] 
+            , span [] []
+            , span [] []
+            ]
+        ]
+    , div [ class "navbar-menu" ]
+        [ div [ class "navbar-start" ]
+            [ a [ class "navbar-item" ] [ text "Home" ] ]
+        , div [ class "navbar-end" ]
+            [ span [ class "navbar-item" ] [ text userDetails.username ]
+            , div [ class "navbar-item" ]
+                [ div [ class "buttons" ] 
+                    [ a [ classList [("button", True), ("is-light", True)] ] [ text "Log out" ] ] 
+                ] 
+            ] 
+        ] 
+    ]
+
 
 -- HTTP
 
