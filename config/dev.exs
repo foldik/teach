@@ -14,7 +14,12 @@ config :teach, TeachWeb.Endpoint,
   watchers: [
     npm: [
       "run",
-      "watch",
+      "watch-elm",
+      cd: Path.expand("../assets", __DIR__)
+    ],
+    npm: [
+      "run",
+      "watch-style",
       cd: Path.expand("../assets", __DIR__)
     ]
   ]
