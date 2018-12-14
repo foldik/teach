@@ -4,6 +4,8 @@ import Html exposing(..)
 import Html.Attributes exposing(..)
 import Html.Events exposing(..)
 import Url
+import Url.Parser exposing (Parser, (</>), int, map, oneOf, s, string)
+import Route exposing (Route)
 
 main =
     Browser.application 
@@ -33,8 +35,22 @@ type alias Model =
 
 init : () -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( Model Login "Init text" key url, Cmd.none )
+    ( Model (getPage (Route.toRoute url)) "Init text" key url, Cmd.none )
 
+getPage : Route -> Page
+getPage route =
+    case route of
+        Route.Login ->
+            Login
+        Route.Home ->
+            Home
+        Route.Students ->
+            Students
+        Route.Courses ->
+            Courses
+        Route.NotFound ->
+            NotFound
+            
 -- UPDATE
 
 type Msg 
@@ -54,7 +70,7 @@ update msg model =
                     ( model, Browser.Navigation.load href )
     
         UrlChanged url ->
-            ( { model | url = url }
+            ( { model | url = url, page = (getPage (Route.toRoute url)) }
             , Cmd.none
             )
         NameChanged newName ->
@@ -70,8 +86,11 @@ view model =
     , body = 
         [ navBar model
         , input [ onInput NameChanged ] []
+        , pageView model
         ]
     }
+
+-- NAVBAR
 
 navBar : Model -> Html Msg
 navBar model =
@@ -104,6 +123,26 @@ navItem page actualPage =
         li [] 
             [ a [ href link, style "color" ( if active then "red" else "blue" ) ] [ text name ] ]
 
+-- PAGE VIEW
+
+pageView : Model -> Html Msg
+pageView model =
+    let
+        pageText =
+            case model.page of
+                NotFound ->
+                    "Not found"
+                Login ->
+                    "Login"
+                Home ->
+                    "Home"
+                Students ->
+                    "Students"
+                Courses ->
+                    "Courses"   
+    in
+        div [] [ text pageText ]
+
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
@@ -111,5 +150,4 @@ subscriptions model =
     Sub.none
 
 -- COMMANDS
-
 -- JSON
