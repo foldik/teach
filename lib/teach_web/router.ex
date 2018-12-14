@@ -17,6 +17,7 @@ defmodule TeachWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :index
+    get "/*path", PageController, :index
   end
 
   scope "/api", TeachWeb do
@@ -24,4 +25,5 @@ defmodule TeachWeb.Router do
 
     get "/user-details", UserController, :get_user_details
   end
+  
 end

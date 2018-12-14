@@ -1,113 +1,115 @@
 import Browser
-import Html exposing (..)
-import Html.Events exposing (onClick)
-import Html.Attributes exposing (..)
-import Http
-import Json.Decode exposing (Decoder, map2, field, string, list)
-
+import Browser.Navigation
+import Html exposing(..)
+import Html.Attributes exposing(..)
+import Html.Events exposing(..)
+import Url
 
 main =
-  Browser.element 
-    { init = init
-    , update = update
-    , subscriptions = subscriptions
-    , view = view 
-    }
-
+    Browser.application 
+        { init = init
+        , update = update
+        , view = view
+        , subscriptions = subscriptions
+        , onUrlChange = UrlChanged
+        , onUrlRequest = LinkClicked
+        }
 
 -- MODEL
 
-type alias UserDetails = 
-  { username : String
-  , roles : List String
-  }
+type Page 
+    = NotFound
+    | Login
+    | Home
+    | Students
+    | Courses
 
-type Model 
-  = Loading
-  | Failure
-  | Loaded UserDetails
-  
+type alias Model = 
+    { page : Page
+    , name : String
+    , key : Browser.Navigation.Key
+    , url : Url.Url
+    }
 
-init : () -> (Model, Cmd Msg)
-init _ =
-  (Loading, getUserDetails)
-
+init : () -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+init flags url key =
+    ( Model Login "Init text" key url, Cmd.none )
 
 -- UPDATE
 
-type Msg = GotUserDetails (Result Http.Error UserDetails)
+type Msg 
+    = LinkClicked Browser.UrlRequest
+    | UrlChanged Url.Url
+    | NameChanged String
 
-update : Msg -> Model -> (Model, Cmd Msg)
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    GotUserDetails result ->
-      case result of
-        Ok userDetails ->
-          (Loaded userDetails, Cmd.none)
-        
-        Err _ ->
-          (Failure, Cmd.none)
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-  Sub.none
-
+    case msg of
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Browser.Navigation.pushUrl model.key (Url.toString url) )
+            
+                Browser.External href ->
+                    ( model, Browser.Navigation.load href )
+    
+        UrlChanged url ->
+            ( { model | url = url }
+            , Cmd.none
+            )
+        NameChanged newName ->
+            ( { model | name = newName }
+            , Cmd.none
+            )
 
 -- VIEW
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-  case model of
-      Loading ->
-        div [] [ text "Loading" ]
-  
-      Failure ->
-        div [] [ text "Application couldn't start. :(" ]
+    { title = "Title"
+    , body = 
+        [ navBar model
+        , input [ onInput NameChanged ] []
+        ]
+    }
 
-      Loaded userDetails ->
-        div []
-          [ menuView userDetails ]
-
-
-menuView : UserDetails -> Html Msg
-menuView userDetails = 
-  nav [ classList [("navbar", True), ("is-primary", True)] ]
-    [ div [ class "navbar-brand" ] 
-        [ a [ classList [("navbar-burger", True), ("burger", True)]] 
-            [ span [] [] 
-            , span [] []
-            , span [] []
+navBar : Model -> Html Msg
+navBar model =
+    div [] 
+        [ ul [] 
+            [ navItem Login model.page
+            , navItem Home model.page 
+            , navItem Students model.page
+            , navItem Courses model.page
+            , li [] [ text model.name ]
             ]
         ]
-    , div [ class "navbar-menu" ]
-        [ div [ class "navbar-start" ]
-            [ a [ class "navbar-item" ] [ text "Home" ] ]
-        , div [ class "navbar-end" ]
-            [ span [ class "navbar-item" ] [ text userDetails.username ]
-            , div [ class "navbar-item" ]
-                [ div [ class "buttons" ] 
-                    [ a [ classList [("button", True), ("is-light", True)] ] [ text "Log out" ] ] 
-                ] 
-            ] 
-        ] 
-    ]
 
+navItem : Page -> Page -> Html Msg 
+navItem page actualPage = 
+    let
+        (name, link, active) =
+            case page of
+                NotFound ->
+                    ("Not found", "/not-found", page == actualPage)
+                Login ->
+                    ("Login", "/login", page == actualPage)
+                Home -> 
+                    ("Home", "/", page == actualPage)
+                Students ->
+                    ("Students", "/students", page == actualPage)
+                Courses ->
+                    ("Courses", "/courses", page == actualPage)
+    in
+        li [] 
+            [ a [ href link, style "color" ( if active then "red" else "blue" ) ] [ text name ] ]
 
--- HTTP
+-- SUBSCRIPTIONS
 
-getUserDetails : Cmd Msg
-getUserDetails = 
-  Http.get
-      { url = "/api/user-details"
-      , expect = Http.expectJson GotUserDetails userDetailsDecoder 
-      }
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
-userDetailsDecoder : Decoder UserDetails
-userDetailsDecoder =
-  map2 UserDetails
-    (field "username" string)
-    (field "roles" (list string))
+-- COMMANDS
+
+-- JSON
